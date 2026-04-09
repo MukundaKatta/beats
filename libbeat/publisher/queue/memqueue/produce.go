@@ -63,6 +63,11 @@ var respChanPool = sync.Pool{
 	},
 }
 
+func getRespChan() chan queue.EntryID {
+	ch, _ := respChanPool.Get().(chan queue.EntryID)
+	return ch
+}
+
 func newProducer(b *broker, cb ackHandler, encoder queue.Encoder) queue.Producer {
 	openState := openState{
 		log:          b.logger,
@@ -83,7 +88,7 @@ func newProducer(b *broker, cb ackHandler, encoder queue.Encoder) queue.Producer
 func (p *forgetfulProducer) makePushRequest(event queue.Entry) pushRequest {
 	return pushRequest{
 		event: event,
-		resp:  respChanPool.Get().(chan queue.EntryID)}
+		resp:  getRespChan()}
 }
 
 func (p *forgetfulProducer) Publish(event queue.Entry) (queue.EntryID, bool) {
@@ -105,7 +110,7 @@ func (p *ackProducer) makePushRequest(event queue.Entry) pushRequest {
 		// We add 1 to the id so the default lastACK of 0 is a
 		// valid initial state and 1 is the first real id.
 		producerID: producerID(p.producedCount + 1),
-		resp:       respChanPool.Get().(chan queue.EntryID)}
+		resp:       getRespChan()}
 }
 
 func (p *ackProducer) Publish(event queue.Entry) (queue.EntryID, bool) {
